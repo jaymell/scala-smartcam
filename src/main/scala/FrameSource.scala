@@ -16,8 +16,11 @@ object FrameSource {
   grabber.setImageMode(ImageMode.COLOR)
   grabber.start()
 
-  def getSource(): Source[Frame, NotUsed] = {
-    return Source.repeat(NotUsed).map(_ => grabber.grab).throttle(1, 100.millisecond)
+  def getFrame(): SFrame = {
+    new SFrame(grabber.grab())
   }
+
+  def getSource(): Source[SFrame, NotUsed] =
+    Source.repeat(NotUsed).map(_ => getFrame).throttle(1, 500.millisecond)
 
 }
