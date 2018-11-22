@@ -11,11 +11,12 @@ class SFrame(val frame: Frame) {
   val timestamp = LocalDateTime.now(ZoneOffset.UTC)
   val height = frame.imageHeight
   val width = frame.imageWidth
-  val mat = SFrame.converterToMat.convert(frame)
-
+//  lazy val mat = SFrame.converterToMat.convert(frame)
+//  lazy val ipl = SFrame.converter(frame)
   // def clone()
 }
 
 object SFrame {
-  val converterToMat = new OpenCVFrameConverter.ToMat
+  val matConverter = new OpenCVFrameConverter.ToMat
+  val IplConverter = new OpenCVFrameConverter.ToIplImage
 }

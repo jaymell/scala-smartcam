@@ -13,13 +13,13 @@ object Graph {
       val source = FrameSource.source()
       val motionDetectionFlow = FrameDiffMotionDetector.flow()
       val canvas = new CanvasFrame("Webcam")
-      val broadcast = builder.add(Broadcast[SFrame](2))
-      val f1 = Sink.foreach[SFrame] { f: SFrame =>
+      val frameBroadcast = builder.add(Broadcast[SFrame](2))
+      val rawStreamSink = Sink.foreach[SFrame] { f: SFrame =>
         println(f.timestamp)
         canvas.showImage(f.frame)
       }
-      source ~> broadcast ~> f1
-      broadcast ~> motionDetectionFlow ~> Sink.ignore
+      source ~> frameBroadcast ~> rawStreamSink
+      frameBroadcast ~> motionDetectionFlow ~> Sink.ignore
       ClosedShape
     })
   }
