@@ -9,10 +9,9 @@ import org.bytedeco.javacv.CanvasFrame
 object Graph {
   def graph(): RunnableGraph[NotUsed] = {
     RunnableGraph.fromGraph(GraphDSL.create() { implicit builder: GraphDSL.Builder[NotUsed] =>
-//      val out = Sink.ignore
 
-      val source = FrameSource.getSource()
-      val motionDetectorFlow =
+      val source = FrameSource.source()
+      val motionDetectionFlow = FrameDiffMotionDetector.flow()
       val canvas = new CanvasFrame("Webcam")
       val broadcast = builder.add(Broadcast[SFrame](2))
       val f1 = Sink.foreach[SFrame] { f: SFrame =>
@@ -20,7 +19,7 @@ object Graph {
         canvas.showImage(f.frame)
       }
       source ~> broadcast ~> f1
-      broadcast ~> motionDetectionFlow
+      broadcast ~> motionDetectionFlow ~> Sink.ignore
       ClosedShape
     })
   }

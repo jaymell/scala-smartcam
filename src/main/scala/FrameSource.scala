@@ -2,6 +2,7 @@ package com.jaymell.smartcam
 
 import scala.concurrent.duration._
 import akka.NotUsed
+import akka.stream.SourceShape
 import akka.stream.scaladsl._
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacv.FrameGrabber.ImageMode
@@ -16,11 +17,11 @@ object FrameSource {
   grabber.setImageMode(ImageMode.COLOR)
   grabber.start()
 
-  def getFrame(): SFrame = {
+  def frame(): SFrame = {
     new SFrame(grabber.grab())
   }
 
-  def getSource(): Source[SFrame, NotUsed] =
-    Source.repeat(NotUsed).map(_ => getFrame).throttle(1, 500.millisecond)
-
+  def source(): Source[SFrame, NotUsed] =
+    Source.repeat(NotUsed).map(_ => frame).throttle(1, 100.millisecond)
 }
+
