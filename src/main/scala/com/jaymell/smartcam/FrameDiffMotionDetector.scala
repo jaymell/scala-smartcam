@@ -1,25 +1,32 @@
 package com.jaymell.smartcam
 
+import java.time.temporal.ChronoUnit
+
 import akka.NotUsed
 import akka.stream.scaladsl.Flow
 import org.bytedeco.javacpp.opencv_core._
 import org.bytedeco.javacpp.opencv_imgproc._
 import org.bytedeco.javacv._
-
+import java.time.{Duration, LocalDateTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
 
 object FrameDiffMotionDetector extends MotionDetector {
 
-  var lastImg: Option[Mat] = None
   val PixelThreshold = 25
   val MaxValue = 255
   val AreaThreshold = 200 // FIXME: this needs to be a function of image size
-  val canvas = new CanvasFrame("DEBUGGER")
+//  val canvas = new CanvasFrame("DEBUGGER")
+  val TimeoutWindow = Duration.of(5, ChronoUnit.SECONDS)
+  var isInMotion = false
+
+  var lastImg: Option[Mat] = None
+  var lastMotionTime: LocalDateTime = null
 
     implicit class IterativeMatVector(val mV: MatVector) extends AnyVal {
     def iter() = (0L until mV.size()).view.map(mV.get)
   }
 
-  def detectMotion(f: SFrame): Boolean = {
+  def detectMotion(f: SFrame): (Boolean, Option[SFrame]) = {
     val curImage: Mat = SFrame.matConverter.convert(new Frame(f.width, f.height, IPL_DEPTH_8U, 1))
     cvtColor(SFrame.matConverter.convert(f.frame), curImage, CV_RGB2GRAY)
 
@@ -30,7 +37,7 @@ object FrameDiffMotionDetector extends MotionDetector {
       absdiff(curImage, li, diff)
       threshold(diff, diff, PixelThreshold, MaxValue, CV_THRESH_BINARY)
       dilate(diff, diff, Mat.ones(3, 3, CV_8UC1).asMat())
-      canvas.showImage(SFrame.IplConverter.convert(diff))
+//      canvas.showImage(SFrame.IplConverter.convert(diff))
       findContours(new Mat(diff), contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
     })
 
@@ -40,15 +47,22 @@ object FrameDiffMotionDetector extends MotionDetector {
 
     lastImg = Option(curImage.clone())
 
-    if (fc.isEmpty) false
-    else true
+    if (fc.isEmpty) {
+      if ( lastMotionTime == null) (false, None)
+      else if ( f.timestamp.minus(TimeoutWindow).isAfter(lastMotionTime)) {
+        lastMotionTime = null
+        (true, None)
+      } else (true, Some(f))
+    }
+    else {
+      lastMotionTime = LocalDateTime.now(ZoneOffset.UTC)
+      ( true, Some(f))
+    }
   }
 
-  def flow(): Flow[SFrame, SFrame, NotUsed] = {
-    Flow.fromFunction[SFrame, SFrame](f => f).filter(f => {
-      val found = detectMotion(f)
-      if (found) println("Motion detected!")
-      found
-    })
-  }
+  def flow(): Flow[SFrame, Option[SFrame], NotUsed] =
+     Flow.fromFunction[SFrame, SFrame](f => f.clone())
+       .map(detectMotion)
+       .collect { case (found, frame) if (found) => { println("Motion detected!"); frame }}
 }
+
