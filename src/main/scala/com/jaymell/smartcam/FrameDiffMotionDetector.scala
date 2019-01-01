@@ -56,11 +56,11 @@ class FrameDiffMotionDetector(val motionKillSwitch: Boolean => Unit) extends Mot
         motionKillSwitch(false)
         (true, None)
       } else {
-        motionKillSwitch(true)
         (true, Some(f))
       }
     }
     else {
+      motionKillSwitch(true)
       lastMotionTime = LocalDateTime.now(ZoneOffset.UTC)
       (true, Some(f))
     }
