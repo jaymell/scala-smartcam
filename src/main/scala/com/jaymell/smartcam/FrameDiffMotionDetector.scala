@@ -13,7 +13,7 @@ class IterativeMatVector(val mV: MatVector) extends AnyVal {
   def iter() = (0L until mV.size()).view.map(mV.get)
 }
 
-class FrameDiffMotionDetector(val motionKillSwitch: Boolean => Unit) extends MotionDetector {
+class FrameDiffMotionDetector(motionSwitch: MotionSwitch) extends MotionDetector {
 
   implicit def iterativeMatVector(m: MatVector) = new IterativeMatVector(m)
 
@@ -53,14 +53,14 @@ class FrameDiffMotionDetector(val motionKillSwitch: Boolean => Unit) extends Mot
       if (lastMotionTime == null) (false, None)
       else if (f.timestamp.minus(TimeoutWindow).isAfter(lastMotionTime)) {
         lastMotionTime = null
-        motionKillSwitch(false)
+        motionSwitch.stop()
         (true, None)
       } else {
         (true, Some(f))
       }
     }
     else {
-      motionKillSwitch(true)
+      motionSwitch.start()
       lastMotionTime = LocalDateTime.now(ZoneOffset.UTC)
       (true, Some(f))
     }

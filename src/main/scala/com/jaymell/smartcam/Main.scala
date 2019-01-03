@@ -2,8 +2,9 @@ package com.jaymell.smartcam
 
 import akka.Done
 import akka.actor.ActorSystem
+import akka.stream._
 import akka.stream.scaladsl.{BroadcastHub, Keep, Sink}
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Supervision}
+import com.jaymell.smartcam.Main.logger
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.Logger
 import org.bytedeco.javacv.CanvasFrame
@@ -34,21 +35,9 @@ object Main extends App {
       })
     })
 
-  var stopped = false
-  def motionKillSwitch(stop: Boolean) = {
-    if (stop) {
-      if (!stopped) {
-        stopped = true
-        logger.info("Starting.")
-      }
-    }
-    else {
-      logger.info("Killing.")
-      stopped = false
-    }
-  }
 
-  val motionSource = Graph.source(motionKillSwitch)
+  val motionSwitch = new MotionSwitch()
+  val motionSource = Graph.source(motionSwitch)
   val motionBroadcastSource = motionSource.toMat(BroadcastHub.sink(64))(Keep.right).run()
   // initial, permanent subscription:
   motionBroadcastSource.to(motionSink).run()
@@ -58,4 +47,5 @@ object Main extends App {
 class Settings(config: Config) {
   val pubSubTopic = config.getString("smartcam.pubSubTopic")
 }
+
 

@@ -9,7 +9,7 @@ import org.bytedeco.javacv.CanvasFrame
 import scala.concurrent.ExecutionContext
 
 object Graph {
-  def source(motionSwitch: Boolean => Unit)(implicit ec: ExecutionContext) = {
+  def source(motionSwitch: MotionSwitch)(implicit ec: ExecutionContext) = {
     Source.fromGraph(GraphDSL.create() { implicit builder: GraphDSL.Builder[NotUsed] =>
 
       val source = FrameSource.source()
